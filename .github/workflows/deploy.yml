@@ -12,6 +12,7 @@ on:
   push:
 
 env:
+  SERVICE_NAME: go-api
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: asia-northeast1
   GCP_REPOSITORY: ${{ secrets.GCP_REPOSITORY }}
