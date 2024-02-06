@@ -17,7 +17,6 @@ env:
   GCP_REGION: asia-northeast1
   GCP_REPOSITORY: ${{ secrets.GCP_REPOSITORY }}
   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-  IMAGE: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REPOSITORY }}/${{ secrets.SERVICE_NAME }}
 
 jobs:
   deploy:
@@ -39,10 +38,10 @@ jobs:
       - name: Build a docker image
         run: |
           cd environment
-          IMAGE=${{ env.IMAGE }} docker compose build
+          IMAGE=${{ env.SERVICE_NAME }} docker compose build
 
       - name: Push the docker image
-        run: docker push ${{ env.IMAGE }}:${{ github.sha }}
+        run: docker push asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
