@@ -10,16 +10,12 @@ name: GCP Deploy
 
 on:
   push:
-    branches-ignore:
-      - "**"
-    tags:
-      - "v*"
     paths:
       - "**.go"
 env:
-  SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
+  SERVICE_NAME: go122-api
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GCP_REGION: ${{ secrets.GCP_REGION }}
+  GCP_REGION: asia-northeast1
   GCP_REPOSITORY: ${{ secrets.GCP_REPOSITORY }}
   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
   IMAGE: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REPOSITORY }}/${{ secrets.SERVICE_NAME }}:${{ github.sha }}
@@ -43,8 +39,8 @@ jobs:
 
       - name: Build a docker image
         run: |
-          cd backend
-          docker build --platform linux/amd64 -t ${{ env.IMAGE }} --target runtime ./
+          cd environment
+          ${{ env.IMAGE }} docker compose build
 
       - name: Push the docker image
         run: docker push ${{ env.IMAGE }}
@@ -58,5 +54,4 @@ jobs:
             --platform=managed \
             --allow-unauthenticated \
             --service-account=${{ env.GCP_SERVICE_ACCOUNT }} \
-            --quiet \
-            --update-secrets=DATABASE_URL=DATABASE_URL:latest \
+            --quiet

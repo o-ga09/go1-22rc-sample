@@ -1,4 +1,4 @@
-package main
+package presenter
 
 import (
 	"fmt"
@@ -9,19 +9,22 @@ import (
 	"os/signal"
 )
 
-func main() {
-	listen, err := net.Listen("tcp", ":8080")
+type Server struct {
+	port string
+}
+
+func NewServer(port string) *Server {
+	return &Server{port: port}
+}
+
+func (s *Server) Run() {
+	listen, err := net.Listen("tcp", fmt.Sprintf(":%s", s.port))
 	if err != nil {
 		panic(err)
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Hellow World go 1.22 ! from GET\n")
-	})
-	mux.HandleFunc("POST /", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Hellow World go 1.22 ! from POST\n")
-	})
+	mux.HandleFunc("GET /", health)
 
 	slog.Info("starting server")
 	go func() {
@@ -35,4 +38,8 @@ func main() {
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 	slog.Info("stopping srever")
+}
+
+func health(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Hellow World go 1.22 ! from GET\n")
 }
