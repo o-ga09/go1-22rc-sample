@@ -12,12 +12,11 @@ on:
   push:
 
 env:
-  SERVICE_NAME: go122-api
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: asia-northeast1
   GCP_REPOSITORY: ${{ secrets.GCP_REPOSITORY }}
   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-  IMAGE: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REPOSITORY }}/${{ SERVICE_NAME }}:${{ github.sha }}
+  IMAGE: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REPOSITORY }}/go122-api:${{ github.sha }}
 
 jobs:
   deploy:
