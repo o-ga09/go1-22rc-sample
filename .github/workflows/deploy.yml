@@ -6,7 +6,7 @@
 # - GCP_REPOSITORY
 # - GCP_SERVICE_ACCOUNT
 #########################
-name: GCP Deploy
+name: Image Build and Push
 
 on:
   push:
@@ -44,13 +44,30 @@ jobs:
       - name: Push the docker image
         run: docker push ${{ env.IMAGE }}
 
-      - name: Deploy to Cloud Run
+      - name: Checkout config repository
+        uses: "google-github-actions/auth@v2"
+        with:
+          repository: o-ga09/infra
+          ref: main
+          token: ${{ secrets.PAT }}
+          path: infra
+      
+      - name: Update Image Tag
+        id: update-image-tag
+        working-directory: infra
+        continue-on-error: true
         run: |
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image ${{ env.IMAGE }} \
-            --project ${{ env.GCP_PROJECT_ID }} \
-            --region ${{ env.GCP_REGION }} \
-            --platform=managed \
-            --allow-unauthenticated \
-            --service-account=${{ env.GCP_SERVICE_ACCOUNT }} \
-            --quiet
+          yq -i '.spec.template.spec.containers[0].image = ${{ env.IMAGE }}' ../../infra/manifests/dev/api_20240206.yml
+          git diff --name-only --exit-code
+
+      - name: Commit and Push
+        working-directory: infra
+        if: steps.update-image-tag.outcome == 'failure'
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .
+          git commit --author=.-m "Update Image Tag to"`printenv IMAGE_TAG`
+          git push
+
+
