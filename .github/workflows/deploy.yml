@@ -45,7 +45,7 @@ jobs:
         run: docker push ${{ env.IMAGE }}
 
       - name: Checkout config repository
-        uses: "google-github-actions/auth@v2"
+        uses: actions/checkout@v3
         with:
           repository: o-ga09/infra
           ref: main
@@ -57,7 +57,7 @@ jobs:
         working-directory: infra
         continue-on-error: true
         run: |
-          yq -i '.spec.template.spec.containers[0].image = ${{ env.IMAGE }}' ../../infra/manifests/dev/api_20240206.yml
+          yq -i '.spec.template.spec.containers[0].image = ${{ env.IMAGE }}' manifests/dev/api_20240206.yml
           git diff --name-only --exit-code
 
       - name: Commit and Push
