@@ -1,6 +1,6 @@
 module github.com/o-ga09/go122rcsample
 
-go 1.22rc2
+go 1.22
 
 require (
 	cloud.google.com/go/logging v1.9.0

@@ -1,0 +1,8 @@
+DROP TABLE IF EXISTS `users`;
+
+CREATE TABLE `users` (
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `email` VARCHAR(10) NOT NULL UNIQUE,
+    `name` VARCHAR(255) NOT NULL,
+    PRIMARY KEY (`id`)
+);

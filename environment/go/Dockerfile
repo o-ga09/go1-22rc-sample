@@ -23,11 +23,11 @@ CMD ["./app"]
 
 #-----------------------------------------------
 #ローカル開発環境で利用するホットリロード環境
-FROM golang:1.21 as dev
+FROM golang:1.22.0-bullseye as dev
 
 WORKDIR /app
 
-COPY ../go.mod ../go.sum ./
+COPY go.mod go.sum ./
 
 RUN go install github.com/cosmtrek/air@latest
 CMD ["air"]
