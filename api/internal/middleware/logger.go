@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"cloud.google.com/go/logging"
@@ -50,33 +51,35 @@ func (h *traceHandler) WithGroup(g string) slog.Handler {
 }
 
 // logger 生成関数
-func New() *slog.Logger {
-	replacer := func(groups []string, a slog.Attr) slog.Attr {
-		if a.Key == slog.MessageKey {
-			a.Key = "message"
-		}
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		replacer := func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.MessageKey {
+				a.Key = "message"
+			}
 
-		if a.Key == slog.LevelKey {
-			a.Key = "severity"
-			a.Value = slog.StringValue(logging.Severity(a.Value.Any().(slog.Level)).String())
-		}
+			if a.Key == slog.LevelKey {
+				a.Key = "severity"
+				a.Value = slog.StringValue(logging.Severity(a.Value.Any().(slog.Level)).String())
+			}
 
-		if a.Key == slog.SourceKey {
-			a.Key = "logging.googleapis.com/sourceLocation"
-		}
+			if a.Key == slog.SourceKey {
+				a.Key = "logging.googleapis.com/sourceLocation"
+			}
 
-		return a
-	}
-	cfg, _ := config.New()
-	projectID := cfg.ProjectID
-	h := traceHandler{slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, ReplaceAttr: replacer}), projectID}
-	newh := h.WithAttr([]slog.Attr{
-		slog.Group("logging.googleapis.com/labels",
-			slog.String("app", "MH-API"),
-			slog.String("env", cfg.Env),
-		),
+			return a
+		}
+		cfg, _ := config.New()
+		projectID := cfg.ProjectID
+		h := traceHandler{slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, ReplaceAttr: replacer}), projectID}
+		newh := h.WithAttr([]slog.Attr{
+			slog.Group("logging.googleapis.com/labels",
+				slog.String("app", "MH-API"),
+				slog.String("env", cfg.Env),
+			),
+		})
+		logger := slog.New(newh)
+		slog.SetDefault(logger)
+		next.ServeHTTP(w, r)
 	})
-	logger := slog.New(newh)
-	slog.SetDefault(logger)
-	return logger
 }

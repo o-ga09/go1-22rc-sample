@@ -1,57 +1,58 @@
 package middleware
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 	"time"
 )
 
 type RequestInfo struct {
-	status         int
-	contentsLength int64
-	path           string
-	sourceIP       string
-	query          string
-	userAgent      string
-	errors         string
-	elapsed        time.Duration
+	ContentsLength int64
+	Path           string
+	SourceIP       string
+	Query          string
+	UserAgent      string
+	Errors         string
+	Elapsed        time.Duration
 }
 
 func (r *RequestInfo) LogValue() interface{} { // Assuming slog expects an interface{}
 	return map[string]interface{}{
-		"status":          r.status,
-		"contents_length": r.contentsLength,
-		"path":            r.path,
-		"sourceIP":        r.sourceIP,
-		"query":           r.query,
-		"user_agent":      r.userAgent,
-		"errors":          r.errors,
-		"elapsed":         r.elapsed.String(),
+		"contents_length": r.ContentsLength,
+		"path":            r.Path,
+		"sourceIP":        r.SourceIP,
+		"query":           r.Query,
+		"user_agent":      r.UserAgent,
+		"errors":          r.Errors,
+		"elapsed":         r.Elapsed.String(),
 	}
 }
 
-func RequestLogger(l *slog.Logger) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
+func RequestLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 
-			defer func() {
-				r := &RequestInfo{
-					status:         r.Response.StatusCode, // Get status after request handling
-					contentsLength: r.ContentLength,
-					path:           r.URL.Path,
-					sourceIP:       r.RemoteAddr,
-					query:          r.URL.RawQuery,
-					userAgent:      r.UserAgent(),
-					errors:// Implement error handling logic if needed
-					"",
-					elapsed: time.Since(start),
-				}
-				slog.Log(context.TODO(), SeverityError, "Request Info", "Request", r.LogValue()) // Adjust logging context as needed
-			}()
+		req := RequestInfo{
+			ContentsLength: r.ContentLength,
+			Path:           r.RequestURI,
+			SourceIP:       r.RemoteAddr,
+			Query:          r.URL.RawQuery,
+			UserAgent:      r.UserAgent(),
+			Errors:         "errors",
+			Elapsed:        time.Since(start),
+		}
+		// req := RequestInfo{
+		// 	Status:         r.Response.StatusCode, // Get status after request handling
+		// 	ContentsLength: r.ContentLength,
+		// 	Path:           r.URL.Path,
+		// 	SourceIP:       r.RemoteAddr,
+		// 	Query:          r.URL.RawQuery,
+		// 	UserAgent:      r.UserAgent(),
+		// 	Errors:         "",
+		// 	Elapsed:        time.Since(start),
+		// }
+		slog.Log(r.Context(), SeverityInfo, "Request Info", "Request", req.LogValue()) // Adjust logging context as needed
+		next.ServeHTTP(w, r)
 
-			next.ServeHTTP(w, r)
-		})
-	}
+	})
 }
