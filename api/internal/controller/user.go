@@ -3,7 +3,6 @@ package controller
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -48,6 +47,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 		Email: email,
 	}
 	slog.Log(r.Context(), middleware.SeverityInfo, "result", "data", result, "requestId", middleware.GetRequestID(r.Context()))
+	middleware.Response(&w, http.StatusOK, result)
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +78,8 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	sql := "INSERT INTO users (name, email) VALUES (?, ?)"
 	_, err = db.Exec(sql, name, email)
 	if err != nil {
-		panic(err)
+		slog.Log(r.Context(), middleware.SeverityError, "can not insert", "error message", err, "requestId", middleware.GetRequestID(r.Context()))
+		return
 	}
-	fmt.Fprintf(w, "name: %s, email: %s\n", name, email)
+	middleware.Response(&w, http.StatusCreated, reqBody)
 }
