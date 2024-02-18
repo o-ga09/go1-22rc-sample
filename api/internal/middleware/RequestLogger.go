@@ -30,7 +30,10 @@ func (r *RequestInfo) LogValue() interface{} { // Assuming slog expects an inter
 
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		slog.Log(r.Context(), SeverityInfo, "処理開始", "requestId", r.Context())
 		start := time.Now()
+
+		next.ServeHTTP(w, r)
 
 		req := RequestInfo{
 			ContentsLength: r.ContentLength,
@@ -42,7 +45,6 @@ func RequestLogger(next http.Handler) http.Handler {
 			Elapsed:        time.Since(start),
 		}
 
-		slog.Log(r.Context(), SeverityInfo, "Request Info", "Request", req.LogValue(), "requestId", r.Context()) // Adjust logging context as needed
-		next.ServeHTTP(w, r)
+		slog.Log(r.Context(), SeverityInfo, "処理終了", "Request", req.LogValue()) // Adjust logging context as needed
 	})
 }
