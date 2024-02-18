@@ -17,7 +17,6 @@ services:
     ports:
       - "3306:3306"
   app:
-    image: api-srv
     depends_on:
       - api-dbsrv01
     build:
