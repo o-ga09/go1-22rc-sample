@@ -11,7 +11,7 @@ import (
 type RequestId string
 
 // AddIDはリクエスト毎にIDを付与するmiddlewareです。
-func AddID(next http.Handler) http.Handler {
+func AddID(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// IDを生成してcontextに保存
 		id := pkg.GenerateID()
@@ -22,7 +22,7 @@ func AddID(next http.Handler) http.Handler {
 }
 
 // WithTimeoutはIDを追加するmiddlewareです。
-func WithTimeout(next http.Handler) http.Handler {
+func WithTimeout(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Context() == nil {
 			r = r.WithContext(context.Background())

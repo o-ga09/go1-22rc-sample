@@ -51,7 +51,7 @@ func (h *traceHandler) WithGroup(g string) slog.Handler {
 }
 
 // logger 生成関数
-func Logger(next http.Handler) http.Handler {
+func Logger(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		replacer := func(groups []string, a slog.Attr) slog.Attr {
 			if a.Key == slog.MessageKey {
