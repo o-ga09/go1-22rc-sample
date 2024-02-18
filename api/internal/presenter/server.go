@@ -29,19 +29,17 @@ func (s *Server) Run() {
 	mux := http.NewServeMux()
 
 	HealthCheckhandler := http.HandlerFunc(controller.Health)
-	HealthCheckhandler = middleware.WithTimeout(HealthCheckhandler)
-	HealthCheckhandler = middleware.RequestLogger(HealthCheckhandler)
-	HealthCheckhandler = middleware.AddID(HealthCheckhandler)
-	HealthCheckhandler = middleware.Logger(HealthCheckhandler)
+	HealthCheckhandler = middleware.UseMiddleware(HealthCheckhandler)
 
-	Userhandler := http.HandlerFunc(controller.GetUsers)
-	Userhandler = middleware.WithTimeout(Userhandler)
-	Userhandler = middleware.RequestLogger(Userhandler)
-	Userhandler = middleware.AddID(Userhandler)
-	Userhandler = middleware.Logger(Userhandler)
+	GetUserhandler := http.HandlerFunc(controller.GetUsers)
+	GetUserhandler = middleware.UseMiddleware(GetUserhandler)
 
-	mux.HandleFunc("/", HealthCheckhandler)
-	mux.Handle("/users", Userhandler)
+	CreateUserhandler := http.HandlerFunc(controller.CreateUser)
+	CreateUserhandler = middleware.UseMiddleware(CreateUserhandler)
+
+	mux.HandleFunc("GET /", HealthCheckhandler)
+	mux.HandleFunc("GET /users/{id}", GetUserhandler)
+	mux.HandleFunc("POST /users", CreateUserhandler)
 
 	slog.Info("starting server")
 	go func() {
