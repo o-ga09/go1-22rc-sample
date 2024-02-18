@@ -47,3 +47,7 @@ func WithTimeout(next http.Handler) http.Handler {
 		}
 	})
 }
+
+func GetRequestID(ctx context.Context) string {
+	return ctx.Value(RequestId("requestId")).(string)
+}

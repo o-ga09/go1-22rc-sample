@@ -34,7 +34,7 @@ func (s *Server) Run() {
 	handler := middleware.WithTimeout(LoggerMiddleware)
 
 	mux.HandleFunc("GET /", controller.Health)
-	mux.HandleFunc("GET /users/:id", controller.GetUsers)
+	mux.HandleFunc("GET /users", controller.GetUsers)
 
 	slog.Info("starting server")
 	go func() {

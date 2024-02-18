@@ -5,6 +5,7 @@ go 1.22
 require (
 	cloud.google.com/go/logging v1.9.0
 	github.com/caarlos0/env v3.5.0+incompatible
+	github.com/go-sql-driver/mysql v1.7.1
 	go.opentelemetry.io/otel/trace v1.22.0
 )
 

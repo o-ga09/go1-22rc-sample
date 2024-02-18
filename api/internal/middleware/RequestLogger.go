@@ -41,18 +41,8 @@ func RequestLogger(next http.Handler) http.Handler {
 			Errors:         "errors",
 			Elapsed:        time.Since(start),
 		}
-		// req := RequestInfo{
-		// 	Status:         r.Response.StatusCode, // Get status after request handling
-		// 	ContentsLength: r.ContentLength,
-		// 	Path:           r.URL.Path,
-		// 	SourceIP:       r.RemoteAddr,
-		// 	Query:          r.URL.RawQuery,
-		// 	UserAgent:      r.UserAgent(),
-		// 	Errors:         "",
-		// 	Elapsed:        time.Since(start),
-		// }
-		slog.Log(r.Context(), SeverityInfo, "Request Info", "Request", req.LogValue()) // Adjust logging context as needed
-		next.ServeHTTP(w, r)
 
+		slog.Log(r.Context(), SeverityInfo, "Request Info", "Request", req.LogValue(), "requestId", r.Context()) // Adjust logging context as needed
+		next.ServeHTTP(w, r)
 	})
 }
