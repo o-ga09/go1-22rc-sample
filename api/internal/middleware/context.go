@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -42,7 +41,6 @@ func WithTimeout(next http.Handler) http.Handler {
 		select {
 		case <-done:
 			// ハンドラーが正常に終了した場合は何もしない
-			fmt.Println("done")
 			return
 		case <-ctx.Done():
 			http.Error(w, "Timeout", http.StatusRequestTimeout)
