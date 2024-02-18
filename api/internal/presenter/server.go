@@ -1,13 +1,17 @@
 package presenter
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/o-ga09/go122rcsample/api/internal/controller"
 )
 
 type Server struct {
@@ -25,12 +29,13 @@ func (s *Server) Run() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", health)
-	mux.HandleFunc("GET /users/:id", getUsers)
+	mux.HandleFunc("GET /", controller.Health)
+	mux.HandleFunc("GET /users/:id", controller.GetUsers)
 
 	slog.Info("starting server")
 	go func() {
-		err = http.Serve(listen, mux)
+		handler := WithTimeout(AddID(mux))
+		err = http.Serve(listen, handler)
 		if err != nil {
 			panic(err)
 		}
@@ -42,33 +47,46 @@ func (s *Server) Run() {
 	slog.Info("stopping srever")
 }
 
-func health(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hellow World go 1.22 ! from GET\n")
+// AddIDはリクエスト毎にIDを付与するmiddlewareです。
+func AddID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// IDを生成してcontextに保存
+		id := generateID()
+		ctx := context.WithValue(r.Context(), "requestId", id)
+		// 次のハンドラーに渡す
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
-func getUsers(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/test")
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
-
-	sql := "SELECT * FROM users WHERE id = ?"
-	rows, err := db.Query(sql, id)
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var id int
-		var name string
-		var email string
-		err = rows.Scan(&id, &name, &email)
-		if err != nil {
-			panic(err)
+// WithTimeoutはIDを追加するmiddlewareです。
+func WithTimeout(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Context() == nil {
+			r = r.WithContext(context.Background())
 		}
-		fmt.Fprintf(w, "id: %d, name: %s, email: %s\n", id, name, email)
-	}
+
+		// タイムアウトを設定
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel() // 処理が終了したらキャンセルする
+
+		// 次のハンドラーを実行し、タイムアウトが発生した場合はエラーメッセージを出力
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			next.ServeHTTP(w, r)
+		}()
+		select {
+		case <-done:
+			// ハンドラーが正常に終了した場合は何もしない
+			fmt.Println("done")
+			return
+		case <-ctx.Done():
+			http.Error(w, "Timeout", http.StatusRequestTimeout)
+		}
+	})
+}
+
+// generateIDはIDを生成するための仮の関数です。
+func generateID() string {
+	return uuid.NewString()
 }
