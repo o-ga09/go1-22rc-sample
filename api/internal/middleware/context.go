@@ -51,3 +51,12 @@ func WithTimeout(next http.HandlerFunc) http.HandlerFunc {
 func GetRequestID(ctx context.Context) string {
 	return ctx.Value(RequestId("requestId")).(string)
 }
+
+func UseMiddleware(handler http.HandlerFunc) http.HandlerFunc {
+	handler = WithTimeout(handler)
+	handler = RequestLogger(handler)
+	handler = AddID(handler)
+	handler = Logger(handler)
+
+	return handler
+}
