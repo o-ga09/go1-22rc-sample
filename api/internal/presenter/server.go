@@ -37,9 +37,17 @@ func (s *Server) Run() {
 	CreateUserhandler := http.HandlerFunc(controller.CreateUser)
 	CreateUserhandler = middleware.UseMiddleware(CreateUserhandler)
 
+	UpdateUserhandler := http.HandlerFunc(controller.UpdateUser)
+	UpdateUserhandler = middleware.UseMiddleware(UpdateUserhandler)
+
+	DeleteUserhandler := http.HandlerFunc(controller.DeleteUser)
+	DeleteUserhandler = middleware.UseMiddleware(DeleteUserhandler)
+
 	mux.HandleFunc("GET /", HealthCheckhandler)
 	mux.HandleFunc("GET /users/{id}", GetUserhandler)
 	mux.HandleFunc("POST /users", CreateUserhandler)
+	mux.HandleFunc("PUT /users/{id}", UpdateUserhandler)
+	mux.HandleFunc("DELETE /users/{id}", DeleteUserhandler)
 
 	slog.Info("starting server")
 	go func() {
