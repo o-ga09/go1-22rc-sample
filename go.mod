@@ -4,9 +4,15 @@ go 1.22
 
 require (
 	cloud.google.com/go/logging v1.9.0
+	cloud.google.com/go/storage v1.30.1
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/go-sql-driver/mysql v1.7.1
 	go.opentelemetry.io/otel/trace v1.22.0
+)
+
+require (
+	cloud.google.com/go/iam v1.1.3 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 )
 
 require (

@@ -83,3 +83,59 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	middleware.Response(&w, http.StatusCreated, reqBody)
 }
+
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	reqBody := struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+	}{}
+
+	err := json.NewDecoder(r.Body).Decode(&reqBody)
+	if err != nil {
+		slog.Log(r.Context(), middleware.SeverityInfo, "can not get request body", "requestId", middleware.GetRequestID(r.Context()))
+		return
+	}
+
+	cfg, _ := config.New()
+	db, err := sql.Open("mysql", cfg.Database_url)
+	if err != nil {
+		slog.Log(r.Context(), middleware.SeverityError, "con not get environment value")
+		return
+	}
+	defer func() {
+		slog.Log(r.Context(), middleware.SeverityInfo, "db disconnect ....", "requestId", middleware.GetRequestID(r.Context()))
+		db.Close()
+	}()
+
+	name := reqBody.Name
+	email := reqBody.Email
+	sql := "UPDATE users SET name = ?, email = ? WHERE id = ?"
+	_, err = db.Exec(sql, name, email, id)
+	if err != nil {
+		slog.Log(r.Context(), middleware.SeverityError, "can not insert", "error message", err, "requestId", middleware.GetRequestID(r.Context()))
+		return
+	}
+	middleware.Response(&w, http.StatusOK, nil)
+}
+
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	cfg, _ := config.New()
+	db, err := sql.Open("mysql", cfg.Database_url)
+	if err != nil {
+		slog.Log(r.Context(), middleware.SeverityError, "con not get environment value")
+		return
+	}
+	defer func() {
+		slog.Log(r.Context(), middleware.SeverityInfo, "db disconnect ....", "requestId", middleware.GetRequestID(r.Context()))
+		db.Close()
+	}()
+	sql := "DELETE FROM users WHERE id = ?"
+	_, err = db.Exec(sql, id)
+	if err != nil {
+		slog.Log(r.Context(), middleware.SeverityError, "can not insert", "error message", err, "requestId", middleware.GetRequestID(r.Context()))
+		return
+	}
+	middleware.Response(&w, http.StatusOK, nil)
+}
