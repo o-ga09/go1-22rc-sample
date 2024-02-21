@@ -2,15 +2,42 @@ package batch
 
 import (
 	"context"
+	"database/sql"
 	"encoding/csv"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 
 	"cloud.google.com/go/storage"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/google/uuid"
 )
+
+const CSV_RECORD = 100000000
+
+func Run(ctx context.Context) {
+	// データベースへの接続
+	db, err := sql.Open("mysql", "api:P@ssw0rd@tcp(localhost:3306)/api?charset=utf8&parseTime=True&loc=Local")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	data := GetCSV(ctx)
+
+	// データベースにインサート
+	for _, record := range *data {
+		sql := "INSERT INTO users (name, email) VALUES (?, ?)"
+		fmt.Println(record)
+		_, err = db.Exec(sql, record[1], record[2])
+		if err != nil {
+			panic(err)
+		}
+	}
+
+}
 
 func UploadCSV(ctx context.Context) {
 	client, err := storage.NewClient(ctx)
@@ -41,7 +68,7 @@ func UploadCSV(ctx context.Context) {
 }
 
 // GCSに保存されたcsvを取得する
-func GetCSV(ctx context.Context) *[]byte {
+func GetCSV(ctx context.Context) *[][]string {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		panic(err)
@@ -55,12 +82,22 @@ func GetCSV(ctx context.Context) *[]byte {
 		panic(err)
 	}
 
-	data, err := ioutil.ReadAll(rc)
-	if err != nil {
-		panic(err)
-	}
+	reader := csv.NewReader(rc)
+	reader.Read()
 
-	fmt.Printf("%s", data)
+	var data [][]string
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+
+		// 各レコードを結合
+		data = append(data, record)
+	}
 	return &data
 }
 
@@ -70,11 +107,18 @@ func CreateCSV(ctx context.Context) {
 		id    string
 		name  string
 		email string
-	}{
-		{id: "value1", name: "value2", email: "value3"},
-		{id: "value4", name: "value5", email: "value6"},
-	}
+	}{}
 
+	for i := range CSV_RECORD {
+		d := struct {
+			id    string
+			name  string
+			email string
+		}{
+			id: strconv.Itoa(i), name: fmt.Sprintf("test%d", i), email: uuid.NewString(),
+		}
+		data = append(data, d)
+	}
 	// CSVファイルの作成
 	f, err := os.Create("test.csv")
 	if err != nil {
