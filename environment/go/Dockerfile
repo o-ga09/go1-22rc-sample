@@ -9,6 +9,17 @@ COPY . .
 
 RUN go build -trimpath -ldflags "-w -s" -o app ./api/cmd/main.go
 
+#デプロイ用コンテナに含めるバイナリを作成するコンテナ
+FROM golang:1.22rc2-bullseye as deploy-builderjobs
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+RUN go build -trimpath -ldflags "-w -s" -o app ./job/cmd/main.go
+
 #-----------------------------------------------
 #デプロイ用コンアテナ
 FROM centos:centos7 as deploy
@@ -18,6 +29,20 @@ RUN yum -y update
 EXPOSE "8080"
 
 COPY --from=deploy-builder /app/app .
+
+CMD ["./app"]
+
+#-----------------------------------------------
+
+#-----------------------------------------------
+#デプロイ用コンアテナ
+FROM centos:centos7 as deploy-jobs
+
+RUN yum -y update
+
+EXPOSE "8080"
+
+COPY --from=deploy-builder-jobs /app/app .
 
 CMD ["./app"]
 

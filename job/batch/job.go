@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const CSV_RECORD = 100000000
+const CSV_RECORD = 1000000
 
 func Run(ctx context.Context) {
 	// データベースへの接続
@@ -28,13 +28,14 @@ func Run(ctx context.Context) {
 	data := GetCSV(ctx)
 
 	// データベースにインサート
+	sql := "INSERT INTO users (name, email) VALUES"
 	for _, record := range *data {
-		sql := "INSERT INTO users (name, email) VALUES (?, ?)"
-		fmt.Println(record)
-		_, err = db.Exec(sql, record[1], record[2])
-		if err != nil {
-			panic(err)
-		}
+		sql += fmt.Sprintf("('%v','%v'),", record[2], record[1])
+	}
+	sql = sql[:len(sql)-1]
+	_, err = db.Exec(sql)
+	if err != nil {
+		panic(err)
 	}
 
 }
@@ -46,7 +47,7 @@ func UploadCSV(ctx context.Context) {
 	}
 
 	bucketName := "sample-api-batch-20240220"
-	objectName := "csv/test.csv"
+	objectName := "csv/test_2.csv"
 
 	writer := client.Bucket(bucketName).Object(objectName).NewWriter(ctx)
 	if err != nil {
@@ -75,7 +76,7 @@ func GetCSV(ctx context.Context) *[][]string {
 	}
 
 	bucketName := "sample-api-batch-20240220"
-	objectName := "csv/test.csv"
+	objectName := "csv/test_2.csv"
 
 	rc, err := client.Bucket(bucketName).Object(objectName).NewReader(ctx)
 	if err != nil {

@@ -12,7 +12,7 @@ func main() {
 	ctx := context.Background()
 	start := time.Now()
 	fmt.Println("start")
-	batch.CreateCSV(ctx)
+	batch.Run(ctx)
 	fmt.Println("end")
 	elapsed := time.Since(start)
 

@@ -10,14 +10,18 @@ name: Image Build and Push
 
 on:
   push:
+    branches:
+      - "main"
 
 env:
   SERVICE_NAME: go-api
+  JOB_NAME: go-job
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: asia-northeast1
   GCP_REPOSITORY: ${{ secrets.GCP_REPOSITORY }}
   GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-  IMAGE: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REPOSITORY }}/go122-api:${{ github.sha }}
+  API_IMAGE: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REPOSITORY }}/go122-api:${{ github.sha }}
+  JOB_IMAGE: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REPOSITORY }}/go122-job:${{ github.sha }}
 
 jobs:
   deploy:
@@ -38,36 +42,35 @@ jobs:
 
       - name: Build a docker image
         run: |
-          cd environment
-          IMAGE=${{ env.IMAGE }} docker compose build
+          docker build --platform linux/amd64 -t ${{ env.API_IMAGE }} --target deploy . -f environment/go/Dockerfile
+          docker build --platform linux/amd64 -t ${{ env.JOB_IMAGE }} --target deploy-jobs . -f environment/go/Dockerfile
 
       - name: Push the docker image
-        run: docker push ${{ env.IMAGE }}
-
-      - name: Checkout config repository
-        uses: actions/checkout@v3
-        with:
-          repository: o-ga09/infra
-          ref: main
-          token: ${{ secrets.PAT }}
-          path: infra
-      
-      - name: Update Image Tag
-        id: update-image-tag
-        working-directory: infra
-        continue-on-error: true
         run: |
-          yq -i '.spec.template.spec.containers[0].image = "${{ env.IMAGE }}"' manifests/dev/go-sample-api/deployment.yml
-          git diff --name-only --exit-code
+          docker push ${{ env.API_IMAGE }}
+          docker push ${{ env.JOB_IMAGE }}
 
-      - name: Commit and Push
-        working-directory: infra
-        if: steps.update-image-tag.outcome == 'failure'
+      - name: API Deploy to Cloud Run
         run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .
-          git commit --author=. -m "Update Image Tag to"`printenv IMAGE_TAG`
-          git push
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.API_IMAGE }} \
+            --project ${{ env.GCP_PROJECT_ID }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --service-account=${{ env.GCP_SERVICE_ACCOUNT }} \
+            --quiet \
+            --set-secrets=DATABASE_URL=DATABASE_URL:latest
 
-
+      - name: Job Deploy to Cloud Run
+        run: | 
+          gcloud run jobs deploy ${{ env.JOB_NAME }} \
+            --tasks 1 \
+            --parallelism 1 \
+            --max-retries 3 \
+            --task-timeout 1m \
+            --image ${{ env.JOB_IMAGE }} \
+            --project ${{ env.GCP_PROJECT_ID }} \
+            --region ${{ env.GCP_REGION }} \
+            --service-account ${{ env.GCP_SERVICE_ACCOUNT }} \
+            --set-secrets=DATABASE_URL=DATABASE_URL:latest
